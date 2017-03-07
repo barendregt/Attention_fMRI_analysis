@@ -170,5 +170,5 @@ for subid in subs:
 
 		nii_2_hdf5(mri_files, roi_masks, h5_dir + subid + '.h5', task) 
 
-		pickle_2_hdf5(trial_param_files, trial_order_files, h5_dir + subid + '.h5', task)
+		pickle_2_hdf5(trial_params_files, trial_order_files, h5_dir + subid + '.h5', task)
 
