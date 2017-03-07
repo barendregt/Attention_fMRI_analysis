@@ -1,4 +1,4 @@
-import os, glob
+import os, glob, pickle
 
 def nii_2_hdf5(in_files, mask_files, hdf5_file, folder_alias):
     """masks data in in_files with masks in mask_files,
@@ -89,6 +89,7 @@ def pickle_2_hdf5(trial_params, trial_order, hdf5_file, folder_alias):
     import os.path as op
     import numpy as np
     import tables
+    import pickle
 
     success = True
 
