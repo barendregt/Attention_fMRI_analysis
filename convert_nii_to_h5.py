@@ -111,14 +111,14 @@ def pickle_2_hdf5(trial_params, trial_order, hdf5_file, folder_alias):
     for runnr, (tp, to) in enumerate(zip(trial_params, trial_order)):
         # get or make group for alias/roi
         try:
-            run_group = h5file.get_node(where = "/" + folder_alias + "/beh", name = runnr, classname='Group')
+            run_group = h5file.get_node(where = "/" + folder_alias + "/beh", name = 'r'+str(runnr), classname='Group')
         except tables.NoSuchNodeError:
-            print('Adding group ' + folder_alias + '_' + runnr + ' to this file')
-            run_group = h5file.create_group(folder_alias_run_group, runnr, folder_alias + '_' + runnr)
+            print('Adding group ' + folder_alias + '_' + 'r'+str(runnr) + ' to this file')
+            run_group = h5file.create_group(folder_alias_run_group, 'r'+str(runnr), folder_alias + '_' + 'r'+str(runnr))
 
-        h5file.create_array(run_group, 'parameters', tp, '#' + runnr + ' trial parameters')
+        h5file.create_array(run_group, 'parameters', tp, '#' + 'r'+str(runnr) + ' trial parameters')
 
-        h5file.create_array(run_group, 'trials', to, '#' + runnr + ' trial order')
+        h5file.create_array(run_group, 'trials', to, '#' + 'r'+str(runnr) + ' trial order')
 
     h5file.close()
 
