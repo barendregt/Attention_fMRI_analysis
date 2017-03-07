@@ -95,7 +95,7 @@ for subid in subs:
 
 		h5_dir = os.path.join(data_dir, subid, 'h5/')
 
-		os.mkdirs(os.path.join(h5_dir))
+		os.makedirs(os.path.join(h5_dir))
 
 		# Organize MRI and par files (also sanity check: if these don't match there is a problem!)
 		mri_files = glob.glob(func_dir + '*' + task + '*.nii.gz')
