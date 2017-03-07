@@ -82,10 +82,11 @@ def mask_nii_2_hdf5(in_files, mask_files, hdf5_file, folder_alias):
 
 subs = ['sub-001','sub-002']
 tasks = ['mapper', 'ocinterleave']
+rois = ['V1','V2','MT']
 
 for subid in subs:
 	for task in tasks:
-		print 'Running %s'%(subid) 
+		print 'Running %s, %s'%(subid,task) 
 
 		# Setup directories
 		data_dir = '/home/shared/2017/visual/Attention/me/'
@@ -95,12 +96,17 @@ for subid in subs:
 
 		h5_dir = os.path.join(data_dir, subid, 'h5/')
 
-		os.makedirs(os.path.join(h5_dir))
+		try:
+			os.makedirs(os.path.join(h5_dir))
+		except:
+			pass
 
 		# Organize MRI and par files (also sanity check: if these don't match there is a problem!)
 		mri_files = glob.glob(func_dir + '*' + task + '*.nii.gz')
 
 		mri_files.sort()
+
+		roi_masks = []
 
 		roi_masks = glob.glob(roi_dir + '*_vol.nii.gz')
 

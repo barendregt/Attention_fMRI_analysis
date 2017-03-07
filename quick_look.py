@@ -15,6 +15,7 @@ from sklearn import linear_model
 import matplotlib.pyplot as plt
 import seaborn as sn
 
+from hedfpy import HDFEyeOperator
 
 from IPython import embed
 
