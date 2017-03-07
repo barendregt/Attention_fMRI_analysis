@@ -125,7 +125,7 @@ def pickle_2_hdf5(trial_params, trial_order, hdf5_file, folder_alias):
     return hdf5_file
 
 
-subs = ['sub-001','sub-002']
+subs = ['sub-002']#['sub-001','sub-002']
 tasks = ['mapper', 'ocinterleave']
 
 for subid in subs:
