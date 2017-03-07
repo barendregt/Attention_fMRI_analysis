@@ -1,6 +1,6 @@
 import os, glob
 
-def mask_nii_2_hdf5(in_files, mask_files, hdf5_file, folder_alias):
+def nii_2_hdf5(in_files, mask_files, hdf5_file, folder_alias):
     """masks data in in_files with masks in mask_files,
     to be stored in an hdf5 file
 
@@ -45,18 +45,25 @@ def mask_nii_2_hdf5(in_files, mask_files, hdf5_file, folder_alias):
     h5file = tables.open_file(hdf5_file, mode = "a", title = hdf5_file)
     # get or make group for alias folder
     try:
-        folder_alias_run_group = h5file.get_node("/", name = folder_alias, classname='Group')
+        folder_alias_task_group = h5file.get_node("/", name = folder_alias, classname='Group')
     except tables.NoSuchNodeError:
         print('Adding group ' + folder_alias + ' to this file')
-        folder_alias_run_group = h5file.create_group("/", folder_alias, folder_alias)
+        folder_alias_task_group = h5file.create_group("/", folder_alias, folder_alias)
+
+    try:
+        folder_alias_run_group = h5file.get_node("/" + folder_alias + "/mri", name = folder_alias + "_mri", classname='Group')
+    except tables.NoSuchNodeError:
+        print('Adding group ' + folder_alias + ' to this file')
+        folder_alias_run_group = h5file.create_group("/" + folder_alias,"mri", folder_alias+"_mri")
+
 
     for (roi, roi_name) in zip(mask_data, mask_names):
         # get or make group for alias/roi
         try:
-            run_group = h5file.get_node(where = "/" + folder_alias, name = roi_name, classname='Group')
+            run_group = h5file.get_node(where = "/" + folder_alias + "/mri", name = roi_name, classname='Group')
         except tables.NoSuchNodeError:
             print('Adding group ' + folder_alias + '_' + roi_name + ' to this file')
-            run_group = h5file.create_group("/" + folder_alias, roi_name, folder_alias + '_' + roi_name)
+            run_group = h5file.create_group(folder_alias_run_group, roi_name, folder_alias + '_' + roi_name)
 
         h5file.create_array(run_group, roi_name, roi, roi_name + ' mask file for reconstituting nii data from masked data')
 
@@ -77,12 +84,48 @@ def mask_nii_2_hdf5(in_files, mask_files, hdf5_file, folder_alias):
 
     return hdf5_file
 
+def pickle_2_hdf5(trial_params, trial_order, hdf5_file, folder_alias):
 
+    import os.path as op
+    import numpy as np
+    import tables
+
+    success = True
+
+    h5file = tables.open_file(hdf5_file, mode = "a", title = hdf5_file)
+    # get or make group for alias folder
+    try:
+        folder_alias_task_group = h5file.get_node("/", name = folder_alias, classname='Group')
+    except tables.NoSuchNodeError:
+        print('Adding group ' + folder_alias + ' to this file')
+        folder_alias_task_group = h5file.create_group("/", folder_alias, folder_alias)
+
+    try:
+        folder_alias_run_group = h5file.get_node("/" + folder_alias + "/beh", name = folder_alias + "_beh", classname='Group')
+    except tables.NoSuchNodeError:
+        print('Adding group ' + folder_alias + ' to this file')
+        folder_alias_run_group = h5file.create_group("/" + folder_alias,"beh", folder_alias+"_beh")
+
+
+    for runnr, (tp, to) in enumerate(zip(trial_params, trial_order)):
+        # get or make group for alias/roi
+        try:
+            run_group = h5file.get_node(where = "/" + folder_alias + "/beh", name = runnr, classname='Group')
+        except tables.NoSuchNodeError:
+            print('Adding group ' + folder_alias + '_' + runnr + ' to this file')
+            run_group = h5file.create_group(folder_alias_run_group, runnr, folder_alias + '_' + runnr)
+
+        h5file.create_array(run_group, 'parameters', tp, '#' + runnr + ' trial parameters')
+
+        h5file.create_array(run_group, 'trials', to, '#' + runnr + ' trial order')
+
+    h5file.close()
+
+    return hdf5_file
 
 
 subs = ['sub-001','sub-002']
 tasks = ['mapper', 'ocinterleave']
-rois = ['V1','V2','MT']
 
 for subid in subs:
 	for task in tasks:
@@ -90,10 +133,10 @@ for subid in subs:
 
 		# Setup directories
 		data_dir = '/home/shared/2017/visual/Attention/me/'
+
 		func_dir = os.path.join(data_dir, subid, 'psc/')
-
+		par_dir = os.path.join(data_dir, subid, 'behaviour/')
 		roi_dir = os.path.join(data_dir, subid, 'roi/')
-
 		h5_dir = os.path.join(data_dir, subid, 'h5/')
 
 		try:
@@ -106,9 +149,25 @@ for subid in subs:
 
 		mri_files.sort()
 
+		par_files = glob.glob(par_dir + '*' + task + '*.pickle')
+
+		par_files.sort()
+
+		trial_params_files = []
+		trial_order_files = []
+
+		for bf in par_files:
+
+			trial_params, trial_order, staircase = pickle.load(open(bf,'rb'))
+
+			trial_params_files.append(trial_params)
+			trial_order_files.append(trial_order)
+
 		roi_masks = []
 
-		roi_masks = glob.glob(roi_dir + '*_vol.nii.gz')
+		roi_masks = glob.glob(roi_dir + '*.nii.gz')
 
-		mask_nii_2_hdf5(mri_files, roi_masks, h5_dir + subid + '.h5', task + "_mri") 
+		nii_2_hdf5(mri_files, roi_masks, h5_dir + subid + '.h5', task) 
+
+		pickle_2_hdf5(trial_param_files, trial_order_files, h5_dir + subid + '.h5', task)
 
