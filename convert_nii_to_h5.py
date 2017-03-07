@@ -82,7 +82,7 @@ subs = ['sub-001','sub-002']
 tasks = ['mapper', 'ocinterleave']
 
 for subid in subs:
-	for task in tasks
+	for task in tasks:
 		print 'Running %s'%(subid) 
 
 		# Setup directories
