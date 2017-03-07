@@ -110,5 +110,5 @@ for subid in subs:
 
 		roi_masks = glob.glob(roi_dir + '*_vol.nii.gz')
 
-		mask_nii_2_hdf5(mri_files, roi_masks, h5_dir + subid + '.h5', task) 
+		mask_nii_2_hdf5(mri_files, roi_masks, h5_dir + subid + '.h5', task + "_mri") 
 

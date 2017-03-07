@@ -6,6 +6,7 @@ import numpy as np
 import scipy.stats as stats
 import nibabel as nb
 import pickle
+import tables
 
 from Staircase import ThreeUpOneDownStaircase
 from functions import double_gamma as hrf
@@ -15,7 +16,6 @@ from sklearn import linear_model
 import matplotlib.pyplot as plt
 import seaborn as sn
 
-from hedfpy import HDFEyeOperator
 
 from IPython import embed
 
@@ -28,13 +28,14 @@ for subid in subs:
 
 	# Setup directories
 	data_dir = '/home/shared/2017/visual/Attention/me/'
-	func_dir = os.path.join(data_dir, subid, 'psc/')
+	h5_dir = os.path.join(data_dir, subid, 'h5/')
+	# func_dir = os.path.join(data_dir, subid, 'psc/')
 	par_dir = os.path.join(data_dir, subid, 'behaviour/')
-	roi_dir = os.path.join(data_dir, subid, 'roi/')
+	# roi_dir = os.path.join(data_dir, subid, 'roi/')
 	fig_dir = os.path.join(data_dir, subid, 'figures/tuning/')
 
 	# Organize MRI and par files (also sanity check: if these don't match there is a problem!)
-	mri_files = glob.glob(func_dir + '*' + task + '*.nii.gz')
+	# mri_files = glob.glob(func_dir + '*' + task + '*.nii.gz')
 	par_files = glob.glob(par_dir + '*' + task + '*.pickle')
 
 	mri_files.sort()
