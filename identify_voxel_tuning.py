@@ -5,7 +5,7 @@ import os,sys,glob
 import numpy as np
 import scipy.stats as stats
 from scipy.signal import fftconvolve
-import nibabel as nb
+import nibabel as nib
 import pickle
 import tables
 
