@@ -71,4 +71,4 @@ for subid in subs:
 
 		mri_data[ROI] = np.array([np.vstack(nib.load(nf).get_data()[lh,:], nib.load(nf).get_data()[rh,:]) for nf in nifti_files])
 
-
+	embed()
