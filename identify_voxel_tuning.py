@@ -98,4 +98,4 @@ for subid in subs:
 		task_data['trial_order'].append(trial_params[:,0])
 		task_data['trial_stimuli'].append(trial_array)
 
-	# embed()
+	embed()
