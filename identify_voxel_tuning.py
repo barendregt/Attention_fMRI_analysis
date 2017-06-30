@@ -62,13 +62,19 @@ for subid in subs:
 	trialinfo_files = glob.glob('%s*_task-%s_*_trialinfo.pickle'%(nifti_dir, task))
 	params_files = glob.glob('%s*_task-%s_*_params.pickle'%(nifti_dir, task))
 
+
+	embed()
+
 	mri_data = {}
 
 	for ROI in rois:
 		# Get all cortex data and task orders
 		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
-		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+		rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 
-		mri_data[ROI] = np.array([np.vstack(nib.load(nf).get_data()[lh,:], nib.load(nf).get_data()[rh,:]) for nf in nifti_files])
+		mri_data[ROI] = np.array([np.vstack(nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]) for nf in nifti_files])
 
-	embed()
+	
+
+	trialinfo = 
+	params = []
