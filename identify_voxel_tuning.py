@@ -76,5 +76,5 @@ for subid in subs:
 
 	
 
-	trialinfo = 
+	trialinfo = []
 	params = []
