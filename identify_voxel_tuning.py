@@ -69,6 +69,6 @@ for subid in subs:
 		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 
-		mri_data[ROI] = np.array([np.vstack(np.nib.load(nf).get_data()[lh,:], np.nib.load(nf).get_data()[rh,:]) for nf in nifti_files])
+		mri_data[ROI] = np.array([np.vstack(nib.load(nf).get_data()[lh,:], nib.load(nf).get_data()[rh,:]) for nf in nifti_files])
 
 
