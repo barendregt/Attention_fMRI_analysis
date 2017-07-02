@@ -29,7 +29,8 @@ subs = ['sub-n001','sub-n003','sub-n005']
 task = 'fullfield' # 'ocinterleave'
 rois = ['V1']#,'V2','MT','BA3a','BA44','BA45']
 
-
+ROI = 'V1'
+TR = 0.945
 # mapper location order (from params):
 # (T=top,B=bottom,L=left,R=right)
 # TR-BR-BL-TL
@@ -76,12 +77,12 @@ for subid in subs:
 
 		mri_data = {}
 
-		for ROI in rois:
-			# Get all cortex data and task orders
-			lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
-			rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+		# for ROI in rois:
+		# Get all cortex data and task orders
+		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+		rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 
-			mri_data[ROI] = np.array([np.vstack([nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]]) for nf in nifti_files])
+		mri_data[ROI] = np.array([np.vstack([nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]]) for nf in nifti_files])
 
 		
 		sio.savemat(file_name=os.path.join(deriv_dir,'roi_data.mat'), mdict=mri_data)
@@ -89,6 +90,7 @@ for subid in subs:
 		mri_data = sio.loadmat(os.path.join(deriv_dir,'roi_data.mat'))
 
 
+	# Load trial data
 	task_data = {'trial_order': [],
 				 'trial_stimuli': []}
 
@@ -97,5 +99,22 @@ for subid in subs:
 
 		task_data['trial_order'].append(trial_params[:,0])
 		task_data['trial_stimuli'].append(trial_array)
+
+
+	# Fit GLM over runs
+	# concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])
+	# concat_trial_order = np.hstack(task_data['trial_order'])
+
+	for run_ii in range(mri_data[ROI].shape[0]):
+		this_run_data = (mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
+
+		this_run_order = task_data['trial_order'][run_ii]
+
+		stimulus_order = np.zeros((len(this_run_order)))
+		stimulus_order[this_run_order < 64] = this_run_order[this_run_order<64] + 1
+
+		design_matrix = np.vstack([np.array(stimulus_order==stimulus,dtype=int) for stimulus in range(1,65)]).T
+
+		design_matrix = np.hstack([np.ones((design_matrix.shape[0],1)), fftconvolve(design_matrix, hrf(np.arange(0,30,TR)[:,np.newaxis]))[:this_run_data.shape[1],:]])
 
 	embed()
