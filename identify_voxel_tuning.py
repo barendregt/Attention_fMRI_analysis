@@ -26,11 +26,14 @@ sn.set(style='ticks')
 from IPython import embed
 
 subs = ['sub-n001','sub-n003','sub-n005']
-task = 'fullfield' # 'ocinterleave'
+task = 'location'#'fullfield' # 'ocinterleave'
 rois = ['V1']#,'V2','MT','BA3a','BA44','BA45']
 
 ROI = 'V1'
 TR = 0.945
+
+
+fit_per_run = False
 # mapper location order (from params):
 # (T=top,B=bottom,L=left,R=right)
 # TR-BR-BL-TL
@@ -96,37 +99,58 @@ for subid in subs:
 
 	for ti,par in zip(trialinfo_files, params_files):
 		[trial_array, trial_indices, trial_params, per_trial_parameters, per_trial_phase_durations, staircase] = pickle.load(open(ti,'rb'))
-
 		task_data['trial_order'].append(trial_params[:,0])
 		task_data['trial_stimuli'].append(trial_array)
 
 
-	# Fit GLM over runs
-	# concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])
-	# concat_trial_order = np.hstack(task_data['trial_order'])
+	if fit_per_run:
+		nan_list = []
+		# include_list = range(mri_data[ROI].shape[1])
+		for run_ii in range(mri_data[ROI].shape[0]):
+			this_run_data = (mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
 
-	embed()
+			if len(np.where(np.sum(np.isnan(this_run_data),1))[0])>0:
+				nan_list.append(np.squeeze(np.where(np.sum(np.isnan(this_run_data),1))[0][0]))
 
-	betas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
-	alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
 
-	for run_ii in range(mri_data[ROI].shape[0]):
-		this_run_data = (mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
+		# Fit GLM over runs
 
-		this_run_order = task_data['trial_order'][run_ii]
 
-		stimulus_order = np.zeros((len(this_run_order)))
-		stimulus_order[this_run_order < 64] = this_run_order[this_run_order<64] + 1
+		embed()
 
-		design_matrix = np.vstack([np.array(stimulus_order==stimulus,dtype=int) for stimulus in range(1,65)]).T
+	
 
-		design_matrix = np.hstack([np.ones((design_matrix.shape[0],1)), fftconvolve(design_matrix, hrf(np.arange(0,30,TR)[:,np.newaxis]))[:this_run_data.shape[1],:]])
+		betas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
+		alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
 
-		mdl = RidgeCV(alphas=[0.0001,0.1,1,10,100,1000])
-		mdl.fit(design_matrix, this_run_data.T)
-		betas[run_ii,:,:] = mdl.coef_
-		alphas[run_ii,:,:] = mdl.alpha_
+		for run_ii in range(mri_data[ROI].shape[0]):
+			this_run_data = (mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
 
+			this_run_order = task_data['trial_order'][run_ii]
+
+			stimulus_order = np.zeros((len(this_run_order)))
+			stimulus_order[this_run_order < 64] = this_run_order[this_run_order<64] + 1
+
+			design_matrix = np.vstack([np.array(stimulus_order==stimulus,dtype=int) for stimulus in range(1,65)]).T
+
+			design_matrix = np.hstack([np.ones((design_matrix.shape[0],1)), fftconvolve(design_matrix, hrf(np.arange(0,30,TR)[:,np.newaxis]))[:this_run_data.shape[1],:]])
+
+			for vii in range(this_run_data.shape[0]):
+				if np.sum(np.isnan(this_run_data[vii,:]))==0:
+					mdl = RidgeCV(alphas=[0.0001,0.1,1,10,100,1000])
+					mdl.fit(design_matrix, this_run_data[vii,:])
+					betas[run_ii,vii,:] = mdl.coef_
+					alphas[run_ii,vii,:] = mdl.alpha_
+
+	else:
+
+		embed()
+
+		concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])
+		concat_trial_order = np.hstack(task_data['trial_order'])
+
+		betas = np.zeros((concat_mri_data.shape[0], 65))
+		alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))		
 
 		# embed()
 
