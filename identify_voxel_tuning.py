@@ -105,6 +105,9 @@ for subid in subs:
 	# concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])
 	# concat_trial_order = np.hstack(task_data['trial_order'])
 
+	betas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
+	alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
+
 	for run_ii in range(mri_data[ROI].shape[0]):
 		this_run_data = (mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
 
@@ -116,5 +119,13 @@ for subid in subs:
 		design_matrix = np.vstack([np.array(stimulus_order==stimulus,dtype=int) for stimulus in range(1,65)]).T
 
 		design_matrix = np.hstack([np.ones((design_matrix.shape[0],1)), fftconvolve(design_matrix, hrf(np.arange(0,30,TR)[:,np.newaxis]))[:this_run_data.shape[1],:]])
+
+		mdl = RidgeCV(alphas=[0.0001,0.1,1,10,100,1000])
+		mdl.fit(design_matrix, this_run_data.T)
+		betas[run_ii,:,:] = mdl.coef_
+		alphas[run_ii,:,:] = mdl.alpha_
+
+
+		# embed()
 
 	embed()
