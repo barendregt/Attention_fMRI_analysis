@@ -105,6 +105,8 @@ for subid in subs:
 	# concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])
 	# concat_trial_order = np.hstack(task_data['trial_order'])
 
+	embed()
+
 	betas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
 	alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 65))
 
@@ -128,4 +130,4 @@ for subid in subs:
 
 		# embed()
 
-	embed()
+	# embed()
