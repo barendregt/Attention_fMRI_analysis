@@ -60,12 +60,13 @@ def bootstrap(data, num_samples, statistic, alpha):
 embed()
 
 # def identify_pref_locs(subid):
+all_tvals = []
+all_rs = []
+all_lc = []
+
 for subid in subs:
 	print 'Running %s'%(subid) 
 
-	all_betas = {}
-	all_tvals = {}
-	all_rs 	  = {}
 
 	# Setup directories
 	data_dir = '/home/shared/2017/visual/OriColorMapper/preproc/'
@@ -78,7 +79,39 @@ for subid in subs:
 
 
 	# Load regression results
-	betas = sio.loadmat(os.path.join(deriv_dir,'%s-betas.mat'%task))
-	r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-rsquareds.mat'%task))
-	tvals = sio.loadmat(os.path.join(deriv_dir,'%s-tvals.mat'%task))
+	betas = sio.loadmat(os.path.join(deriv_dir,'%s-betas.mat'%task))[ROI]
+	r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-rsquareds.mat'%task))[ROI]
+	tvals = sio.loadmat(os.path.join(deriv_dir,'%s-tvals.mat'%task))[ROI]
 
+	all_tvals.append(tvals)
+	all_rs.append(r_squared)	
+
+
+	# Get location pref distribution
+	location_count = np.array([np.sum(np.argmax(tvals, axis=1)==loc) for loc in np.unique(np.argmax(tvals, axis=1))]) / tvals.shape[0]
+	all_lc.append(location_count)
+
+	# Tuning prefs
+	
+
+
+
+
+
+
+
+
+
+
+
+plt.figure()
+m_lc = np.mean(all_lc,axis=0)
+s_lc = np.std(all_lc,axis=0)/len(subs)
+plt.bar([0.1,1.1,2.1,3.1],m_lc)
+plt.errorbar([0.5,1.5,2.5,3.5],m_lc,s_lc,fmt='.',color='k')
+plt.axis([0,4,0,.5])
+plt.ylabel('Proportion voxels/location')
+sn.despine()
+# plt.set('xticks',[.5,1.5,2.5,3.5])
+plt.savefig('location_count.pdf')
+plt.close()

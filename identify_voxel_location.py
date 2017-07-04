@@ -173,13 +173,13 @@ for subid in subs:
 		concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])#np.hstack(mri_data[ROI])#
 		concat_trial_order = np.hstack(task_data['trial_order'])
 
-		# trial_locations = np.vstack(task_data['trial_order'])[:,[1,2]]
+		trial_locations = np.vstack(task_data['trial_params'])[:,[1,2]]
 		# tmp_locations = np.zeros((concat_mri_data.shape[1],2))
 		# tmp_locations[::2,:] = trial_locations
 
+		
 
-
-		design_matrix = np.vstack([np.array(concat_trial_order==stim, dtype=int) for stim in range(65)]).T
+		design_matrix = np.vstack([np.array((trial_locations[:,0]==a) * (trial_locations[:,1]==b), dtype=int) for a,b in locations]).T
 
 		# resample signals to 1s resolution 
 		resampled_mri_data = resample(concat_mri_data, int(concat_mri_data.shape[1]/TR), axis=1)
@@ -207,27 +207,27 @@ for subid in subs:
 
 		location_rs = 1 - (((resampled_dm.dot(betas)-resampled_mri_data.T)**2).sum(axis=0) / (resampled_mri_data**2).sum(axis=1))
 
-		# location_contrast = np.eye(4) + (np.eye(4)-1)/3
+		location_contrast = np.eye(4) + (np.eye(4)-1)/3
 
-		# # location_contrast = [[0.5, -0.5],
-		# # 					 [0.5, -0.5],
-		# # 					 [-0.5,0.5],
-		# # 					 [-0.5,0.5]]
+		# location_contrast = [[0.5, -0.5],
+		# 					 [0.5, -0.5],
+		# 					 [-0.5,0.5],
+		# 					 [-0.5,0.5]]
 
-		# df = resampled_mri_data.shape[0] - betas.shape[0]
-		# location_tvalues = betas[1:,:].T.dot(location_contrast) / (((resampled_dm.dot(betas)-resampled_mri_data.T)**2).sum(axis=0) / df)[:,np.newaxis]
+		df = resampled_mri_data.shape[0] - betas.shape[0]
+		location_tvalues = betas[1:,:].T.dot(location_contrast) / (((resampled_dm.dot(betas)-resampled_mri_data.T)**2).sum(axis=0) / df)[:,np.newaxis]
 
-		# # location_pvalues = stats.t.sf(np.abs(location_tvalues), df)*2
+		# location_pvalues = stats.t.sf(np.abs(location_tvalues), df)*2
 
-		# location_count = [np.sum(np.argmax(location_tvalues, axis=1)==loc) for loc in np.unique(np.argmax(location_tvalues, axis=1))]
+		location_count = [np.sum(np.argmax(location_tvalues, axis=1)==loc) for loc in np.unique(np.argmax(location_tvalues, axis=1))]
 
-		# print location_count
+		print location_count
 
 		all_betas[ROI] = betas
-		# all_tvals[ROI] = location_tvalues
+		all_tvals[ROI] = location_tvalues
 		all_rs[ROI] = location_rs
 
 	# Save stuff
-	sio.savemat(file_name=os.path.join(deriv_dir,'%s-feature_betas.mat'%task), mdict=all_betas)
-	# sio.savemat(file_name=os.path.join(deriv_dir,'%s-tvals.mat'%task), mdict=all_tvals)
-	sio.savemat(file_name=os.path.join(deriv_dir,'%s-feature_rsquareds.mat'%task), mdict=all_rs)
+	sio.savemat(file_name=os.path.join(deriv_dir,'%s-location_betas.mat'%task), mdict=all_betas)
+	sio.savemat(file_name=os.path.join(deriv_dir,'%s-location_tvals.mat'%task), mdict=all_tvals)
+	sio.savemat(file_name=os.path.join(deriv_dir,'%s-location_rsquareds.mat'%task), mdict=all_rs)
