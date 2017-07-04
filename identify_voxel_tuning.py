@@ -200,7 +200,7 @@ for subid in subs:
 
 		# concat_mri_data = concat_mri_data[np.sum(np.isnan(concat_mri_data), axis=1)==0,:]
 
-		location_rs = 1 - (((resampled_dm.dot(betas.T)-resampled_mri_data.T)**2).sum(axis=0) / (resampled_mri_data**2).sum(axis=1))
+		location_rs = 1 - (((resampled_dm.dot(betas)-resampled_mri_data.T)**2).sum(axis=0) / (resampled_mri_data**2).sum(axis=1))
 
 		location_contrast = np.eye(4) + (np.eye(4)-1)/3
 
