@@ -150,7 +150,10 @@ for subid in subs:
 
 	template_beta_mat = np.reshape(np.arange(64),[8,8])
 
-	for vii in mri_data
+	col_beta_mat = np.repeat(np.arange(8)[:,np.newaxis],8,axis=1)
+	ori_beta_mat = np.repeat(np.arange(8)[:,np.newaxis],8,axis=1).T
+
+	for vii in mri_data.shape[0]:
 
 		concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])#np.hstack(mri_data[ROI])#
 		concat_trial_order = np.hstack(task_data['trial_order'])
