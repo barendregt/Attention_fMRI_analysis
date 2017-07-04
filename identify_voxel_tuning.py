@@ -56,7 +56,8 @@ def bootstrap(data, num_samples, statistic, alpha):
     return (stat[int((alpha/2.0)*num_samples)],
             stat[int((1-alpha/2.0)*num_samples)])
 
-def identify_pref_locs(subid):
+# def identify_pref_locs(subid):
+for subid in subs:
 	print 'Running %s'%(subid) 
 
 	# Setup directories
@@ -125,7 +126,7 @@ def identify_pref_locs(subid):
 		# Fit GLM over runs
 
 
-		embed()
+		# embed()
 
 	
 
@@ -199,7 +200,7 @@ def identify_pref_locs(subid):
 
 		# concat_mri_data = concat_mri_data[np.sum(np.isnan(concat_mri_data), axis=1)==0,:]
 
-		# betas = la.lstsq(resampled_dm, concat_mri_data.T)[0]
+		location_rs = 1 - (((resampled_dm.dot(betas.T)-resampled_mri_data.T)**2).sum(axis=0) / (resampled_mri_data**2).sum(axis=1))
 
 		location_contrast = np.eye(4) + (np.eye(4)-1)/3
 
@@ -220,9 +221,9 @@ def identify_pref_locs(subid):
 		all_betas[subid] = betas
 		all_tvals[subid] = location_tvalues
 
-num_cores = multiprocessing.cpu_count()
+# num_cores = multiprocessing.cpu_count()
 
-Parallel(n_jobs=12)(delayed(identify_pref_locs)(subname) for subname in subs)
+# Parallel(n_jobs=12)(delayed(identify_pref_locs)(subname) for subname in subs)
 
 
 sio.savemat(file_name=os.path.join(deriv_dir,'%s-betas.mat'%task), mdict=all_betas)
