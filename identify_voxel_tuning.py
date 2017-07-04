@@ -46,6 +46,7 @@ fit_per_run = False
 
 all_betas = {}
 all_tvals = {}
+all_rs 	  = {}
 
 def bootstrap(data, num_samples, statistic, alpha):
     """Returns bootstrap estimate of 100.0*(1-alpha) CI for statistic."""
@@ -220,6 +221,7 @@ for subid in subs:
 
 		all_betas[subid] = betas
 		all_tvals[subid] = location_tvalues
+		all_rs[subid] = location_rs
 
 # num_cores = multiprocessing.cpu_count()
 
@@ -228,3 +230,4 @@ for subid in subs:
 
 sio.savemat(file_name=os.path.join(deriv_dir,'%s-betas.mat'%task), mdict=all_betas)
 sio.savemat(file_name=os.path.join(deriv_dir,'%s-tvals.mat'%task), mdict=all_tvals)
+sio.savemat(file_name=os.path.join(deriv_dir,'%s-rsquareds.mat'%task), mdict=all_rs)
