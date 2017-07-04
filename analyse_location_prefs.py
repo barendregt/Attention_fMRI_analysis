@@ -95,10 +95,15 @@ for subid in subs:
 	feature_betas = sio.loadmat(os.path.join(deriv_dir,'%s-feature_betas.mat'%task))[ROI]
 	feature_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-feature_rsquareds.mat'%task))[ROI]
 
-
+	ori_pref = np.zeros((feature_betas.shape[1]))
+	col_pref = np.zeros((feature_betas.shape[1]))
+	
 	for vii in feature_betas.shape[1]:
 
-		rs_betas = np.reshape()
+		rs_betas = np.reshape(feature_betas[1:,vii],[8,8])
+
+		ori_pref[vii] = np.argmax(rs_betas, axis=1)
+		col_pref[vii] = np.argmax(rs_betas, axis=0)
 
 
 

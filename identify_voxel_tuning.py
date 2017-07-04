@@ -29,7 +29,7 @@ sn.set(style='ticks')
 from IPython import embed
 
 subs = ['sub-n001','sub-n003','sub-n005']
-task = 'location'#'fullfield' # 'ocinterleave'
+task = 'fullfield'#'location'#'fullfield' # 'ocinterleave'
 rois = ['V1']#,'V2','MT','BA3a','BA44','BA45']
 
 locations = [[-1.5, -1.5], [-1.5, 1.5], [1.5, -1.5], [1.5, 1.5]]
