@@ -1,6 +1,9 @@
 from __future__ import division
 import os,sys,glob
 
+from joblib import Parallel, delayed
+import multiprocessing
+
 import numpy as np
 import scipy.linalg as la
 import scipy.stats as stats
@@ -53,7 +56,7 @@ def bootstrap(data, num_samples, statistic, alpha):
     return (stat[int((alpha/2.0)*num_samples)],
             stat[int((1-alpha/2.0)*num_samples)])
 
-for subid in subs:
+def identify_pref_locs(subid):
 	print 'Running %s'%(subid) 
 
 	# Setup directories
@@ -216,6 +219,11 @@ for subid in subs:
 
 		all_betas[subid] = betas
 		all_tvals[subid] = location_tvalues
+
+num_cores = multiprocessing.cpu_count()
+
+Parallel(n_jobs=12)(delayed(identify_pref_locs)(subname) for subname in subs)
+
 
 sio.savemat(file_name=os.path.join(deriv_dir,'%s-betas.mat'%task), mdict=all_betas)
 sio.savemat(file_name=os.path.join(deriv_dir,'%s-tvals.mat'%task), mdict=all_tvals)
