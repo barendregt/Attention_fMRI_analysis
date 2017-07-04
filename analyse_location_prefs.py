@@ -79,24 +79,26 @@ for subid in subs:
 
 
 	# Load regression results
-	betas = sio.loadmat(os.path.join(deriv_dir,'%s-betas.mat'%task))[ROI]
-	r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-rsquareds.mat'%task))[ROI]
-	tvals = sio.loadmat(os.path.join(deriv_dir,'%s-tvals.mat'%task))[ROI]
+	location_betas = sio.loadmat(os.path.join(deriv_dir,'%s-location_betas.mat'%task))[ROI]
+	location_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-location_rsquareds.mat'%task))[ROI]
+	location_tvals = sio.loadmat(os.path.join(deriv_dir,'%s-location_tvals.mat'%task))[ROI]
 
-	all_tvals.append(tvals)
-	all_rs.append(r_squared)	
+	all_tvals.append(location_tvals)
+	all_rs.append(location_r_squared)	
 
 
 	# Get location pref distribution
-	location_count = np.array([np.sum(np.argmax(tvals, axis=1)==loc) for loc in np.unique(np.argmax(tvals, axis=1))]) / tvals.shape[0]
+	location_count = np.array([np.sum(np.argmax(location_tvals, axis=1)==loc) for loc in np.unique(np.argmax(location_tvals, axis=1))]) / location_tvals.shape[0]
 	all_lc.append(location_count)
 
 	# Tuning prefs
-	
+	feature_betas = sio.loadmat(os.path.join(deriv_dir,'%s-feature_betas.mat'%task))[ROI]
+	feature_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-feature_rsquareds.mat'%task))[ROI]
 
 
+	for vii in feature_betas.shape[1]:
 
-
+		rs_betas = np.reshape()
 
 
 
