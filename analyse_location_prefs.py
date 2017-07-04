@@ -97,7 +97,7 @@ for subid in subs:
 
 	ori_pref = np.zeros((feature_betas.shape[1]))
 	col_pref = np.zeros((feature_betas.shape[1]))
-	
+
 	for vii in feature_betas.shape[1]:
 
 		rs_betas = np.reshape(feature_betas[1:,vii],[8,8])
@@ -106,6 +106,76 @@ for subid in subs:
 		col_pref[vii] = np.argmax(rs_betas, axis=0)
 
 
+
+
+	# Locate nifti files
+	nifti_files = glob.glob('%s*_task-%s_*.nii.gz'%(nifti_dir, task))
+	trialinfo_files = glob.glob('%s*_task-%s_*_trialinfo.pickle'%(pickle_dir, task))
+	params_files = glob.glob('%s*_task-%s_*_params.pickle'%(pickle_dir, task))
+
+	nifti_files.sort()
+	trialinfo_files.sort()
+	params_files.sort()
+
+	
+
+	# Load fMRI data if not previously saved
+	if not os.path.isfile(os.path.join(deriv_dir,'%s-roi_data.mat'%task)):
+
+		mri_data = {}
+
+		# for ROI in rois:
+		# Get all cortex data and task orders
+		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+		rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+
+		mri_data[ROI] = np.array([np.vstack([nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]]) for nf in nifti_files])
+
+		
+		sio.savemat(file_name=os.path.join(deriv_dir,'%s-roi_data.mat'%task), mdict=mri_data)
+	else:
+		mri_data = sio.loadmat(os.path.join(deriv_dir,'%s-roi_data.mat'%task))
+
+	# Load trial data
+	task_data = {'trial_order': [],
+				 'trial_stimuli': [],
+				 'trial_params': []}
+
+	for ti,par in zip(trialinfo_files, params_files):
+		[trial_array, trial_indices, trial_params, per_trial_parameters, per_trial_phase_durations, staircase] = pickle.load(open(ti,'rb'))
+		task_data['trial_order'].append(trial_params[:,0])
+		task_data['trial_params'].append(trial_params)
+		task_data['trial_stimuli'].append(trial_array)	
+
+
+	template_beta_mat = np.reshape(np.arange(64),[8,8])
+
+	for vii in mri_data
+
+		concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])#np.hstack(mri_data[ROI])#
+		concat_trial_order = np.hstack(task_data['trial_order'])
+
+		trial_locations = np.vstack(task_data['trial_order'])[:,[1,2]]
+
+		betas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))
+		alphas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))	
+
+		for vii in range(resampled_mri_data.shape[0]):
+
+			design_matrix = np.vstack([np.array((trial_locations[:,0]==a) * (trial_locations[:,1]==b) * (concat_trial_order==stim), dtype=int) for stim in range(64)]).T
+
+			# resample signals to 1s resolution 
+			resampled_mri_data = resample(concat_mri_data, int(concat_mri_data.shape[1]/TR), axis=1)
+			resampled_dm       = resample(design_matrix, int(concat_mri_data.shape[1]/TR), axis=0)
+			
+			resampled_dm = np.hstack([np.ones((resampled_dm.shape[0],1)), fftconvolve(resampled_dm, hrf(np.arange(0,30,1/US_FACTOR)[::US_FACTOR,np.newaxis]))[:resampled_mri_data.shape[1],:]])
+		
+			if np.sum(np.isnan(resampled_mri_data[vii,:]))==0:
+				mdl = RidgeCV(alphas=[1.0,10.0,100.0,1000.0])
+				mdl.fit(resampled_dm, resampled_mri_data[vii,:])
+
+				betas[:,vii] = mdl.coef_
+				alphas[:,vii] = mdl.alpha_
 
 
 
