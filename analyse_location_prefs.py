@@ -79,12 +79,12 @@ for subid in subs:
 
 
 	# Load regression results
-	location_betas = sio.loadmat(os.path.join(deriv_dir,'%s-location_betas.mat'%task))[ROI]
-	location_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-location_rsquareds.mat'%task))[ROI]
-	location_tvals = sio.loadmat(os.path.join(deriv_dir,'%s-location_tvals.mat'%task))[ROI]
+	# location_betas = sio.loadmat(os.path.join(deriv_dir,'%s-location_betas.mat'%task))[ROI]
+	# location_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-location_rsquareds.mat'%task))[ROI]
+	# location_tvals = sio.loadmat(os.path.join(deriv_dir,'%s-location_tvals.mat'%task))[ROI]
 
-	all_tvals.append(location_tvals)
-	all_rs.append(location_r_squared)	
+	# all_tvals.append(location_tvals)
+	# all_rs.append(location_r_squared)	
 
 
 	# Get location pref distribution

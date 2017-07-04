@@ -179,7 +179,7 @@ for subid in subs:
 
 
 
-		design_matrix = np.vstack([np.array(concat_trial_order==stim, dtype=int) for stim in range(65)]).T
+		design_matrix = np.vstack([np.array(concat_trial_order==stim, dtype=int) for stim in range(64)]).T
 
 		# resample signals to 1s resolution 
 		resampled_mri_data = resample(concat_mri_data, int(concat_mri_data.shape[1]/TR), axis=1)
