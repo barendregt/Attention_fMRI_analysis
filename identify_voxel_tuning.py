@@ -32,6 +32,8 @@ subs = ['sub-n001','sub-n003','sub-n005']
 task = 'location'#'fullfield' # 'ocinterleave'
 rois = ['V1']#,'V2','MT','BA3a','BA44','BA45']
 
+locations = [[-1.5, -1.5], [-1.5, 1.5], [1.5, -1.5], [1.5, 1.5]]
+
 ROI = 'V1'
 TR = 0.945
 
@@ -44,9 +46,7 @@ fit_per_run = False
 # TR-BR-BL-TL
 # exp_location_order = [3, 0, 2, 1]
 
-all_betas = {}
-all_tvals = {}
-all_rs 	  = {}
+
 
 def bootstrap(data, num_samples, statistic, alpha):
     """Returns bootstrap estimate of 100.0*(1-alpha) CI for statistic."""
@@ -60,6 +60,10 @@ def bootstrap(data, num_samples, statistic, alpha):
 # def identify_pref_locs(subid):
 for subid in subs:
 	print 'Running %s'%(subid) 
+
+	all_betas = {}
+	all_tvals = {}
+	all_rs 	  = {}
 
 	# Setup directories
 	data_dir = '/home/shared/2017/visual/OriColorMapper/preproc/'
@@ -173,7 +177,7 @@ for subid in subs:
 		# tmp_locations = np.zeros((concat_mri_data.shape[1],2))
 		# tmp_locations[::2,:] = trial_locations
 
-		locations = [[-1.5, -1.5], [-1.5, 1.5], [1.5, -1.5], [1.5, 1.5]]
+		
 
 		design_matrix = np.vstack([np.array((trial_locations[:,0]==a) * (trial_locations[:,1]==b), dtype=int) for a,b in locations]).T
 
@@ -188,8 +192,8 @@ for subid in subs:
 		# ds_mri_data = resample(resampled_mri_data, int(resampled_mri_data.shape[1]/DS_FACTOR), axis=1)
 		# ds_dm       = resample(resampled_dm, int(resampled_mri_data.shape[1]/DS_FACTOR), axis=0)
 
-		betas = np.zeros((5,resampled_mri_data.shape[0]))
-		alphas = np.zeros((5,resampled_mri_data.shape[0]))	
+		betas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))
+		alphas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))	
 
 		for vii in range(resampled_mri_data.shape[0]):
 			if np.sum(np.isnan(resampled_mri_data[vii,:]))==0:
@@ -219,15 +223,11 @@ for subid in subs:
 
 		print location_count
 
-		all_betas[subid] = betas
-		all_tvals[subid] = location_tvalues
-		all_rs[subid] = location_rs
+		all_betas[ROI] = betas
+		all_tvals[ROI] = location_tvalues
+		all_rs[ROI] = location_rs
 
-# num_cores = multiprocessing.cpu_count()
-
-# Parallel(n_jobs=12)(delayed(identify_pref_locs)(subname) for subname in subs)
-
-
-sio.savemat(file_name=os.path.join(deriv_dir,'%s-betas.mat'%task), mdict=all_betas)
-sio.savemat(file_name=os.path.join(deriv_dir,'%s-tvals.mat'%task), mdict=all_tvals)
-sio.savemat(file_name=os.path.join(deriv_dir,'%s-rsquareds.mat'%task), mdict=all_rs)
+	# Save stuff
+	sio.savemat(file_name=os.path.join(deriv_dir,'%s-betas.mat'%task), mdict=all_betas)
+	sio.savemat(file_name=os.path.join(deriv_dir,'%s-tvals.mat'%task), mdict=all_tvals)
+	sio.savemat(file_name=os.path.join(deriv_dir,'%s-rsquareds.mat'%task), mdict=all_rs)
