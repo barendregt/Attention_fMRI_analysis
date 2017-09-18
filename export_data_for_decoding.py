@@ -65,21 +65,14 @@ params_files.sort()
 
 
 # Load fMRI data if not previously saved
-if not os.path.isfile(os.path.join(deriv_dir,'%s-roi_data.mat'%task)):
+mri_data = {}
 
-	mri_data = {}
-
-	# for ROI in rois:
+for ROI in rois
 	# Get all cortex data and task orders
 	lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 	rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 
 	mri_data[ROI] = np.array([np.vstack([nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]]) for nf in nifti_files])
-
-	
-	sio.savemat(file_name=os.path.join(deriv_dir,'%s-roi_data.mat'%task), mdict=mri_data)
-else:
-	mri_data = sio.loadmat(os.path.join(deriv_dir,'%s-roi_data.mat'%task))
 
 
 # Load trial data
