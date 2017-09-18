@@ -14,7 +14,7 @@ import pickle
 import tables
 
 from Staircase import ThreeUpOneDownStaircase
-from tools import two_gamma as hrf
+from tools import two_gamma
 from tools import add_subplot_axes
 
 import ColorTools as ct
@@ -40,13 +40,20 @@ TR = 0.945
 US_FACTOR = 10
 DS_FACTOR = 10
 
-fit_per_run = False
+SAMPLE_FREQ = 40
+HRF_LEN = 25
+
+fit_per_run = True
+
 # mapper location order (from params):
 # (T=top,B=bottom,L=left,R=right)
 # TR-BR-BL-TL
 # exp_location_order = [3, 0, 2, 1]
 
-
+hrf = two_gamma(np.linspace(0,HRF_LEN,HRF_LEN*SAMPLE_FREQ))
+hrf /= hrf.max()
+hrf_dt = np.r_[0,np.diff(hrf)]
+hrf_dt /= hrf_dt.max()
 
 def bootstrap(data, num_samples, statistic, alpha):
     """Returns bootstrap estimate of 100.0*(1-alpha) CI for statistic."""
@@ -66,7 +73,8 @@ for subid in subs:
 	all_rs 	  = {}
 
 	# Setup directories
-	data_dir = '/home/shared/2017/visual/OriColorMapper/preproc/'
+	#data_dir = '/home/shared/2017/visual/OriColorMapper/preproc/'
+	data_dir = '/home/barendregt/Projects/OriColorMapper/fmri_data/'
 	#data_dir = '/home/barendregt/Projects/Attention/'
 	nifti_dir = os.path.join(data_dir, subid, 'psc/')
 	deriv_dir = os.path.join(data_dir, subid, 'deriv/')
@@ -135,12 +143,22 @@ for subid in subs:
 
 	
 
-		betas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 5))
-		alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 5))
+		betas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 9))
+		alphas = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 9))
 		location_tvalues = np.zeros((mri_data[ROI].shape[0],mri_data[ROI].shape[1], 4))
 
 		for run_ii in range(mri_data[ROI].shape[0]):
-			this_run_data = mri_data[ROI][run_ii,:,:]#(mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
+			this_run_data = (mri_data[ROI][run_ii,:,:] - mri_data[ROI][run_ii,:,:].mean(axis=1)[:,np.newaxis]) / mri_data[ROI][run_ii,:,:].std(axis=1)[:,np.newaxis]
+
+			outlier_mask = np.ones(this_run_data.shape[0],dtype=bool)
+			outlier_mask[np.unique(np.argwhere((this_run_data > 5) + np.isnan(this_run_data))[:,0])] = False
+
+			this_run_data = this_run_data[outlier_mask,:]
+
+			# resample data to 1s TR (easier on the brain)
+			#this_run_data_rs = resample(this_run_data, int(this_run_data.shape[1]/TR), axis=1)
+
+			TRs = np.array([int(x * SAMPLE_FREQ * TR) for x in np.arange(0, this_run_data.shape[-1])])
 
 			this_run_order = task_data['trial_params'][run_ii][:,[1,2]]
 
@@ -151,24 +169,34 @@ for subid in subs:
 
 			design_matrix = np.vstack([np.array((tmp_locations[:,0]==a) * (tmp_locations[:,1]==b), dtype=int) for a,b in locations]).T
 
-			design_matrix = np.hstack([np.ones((design_matrix.shape[0],1)), fftconvolve(design_matrix, hrf(np.arange(0,30,TR)[:,np.newaxis]))[:this_run_data.shape[1],:]])
+			# design_matrix_rs = np.repeat(design_matrix, SAMPLE_FREQ, axis=0)
+			design_matrix_rs = np.zeros((samples_per_TR*design_matrix.shape[0],design_matrix.shape[1]))
+			for t in range(design_matrix.shape[0]):
+				design_matrix_rs[int(t*SAMPLE_FREQ):int(t*SAMPLE_FREQ)+SAMPLE_FREQ,:] = design_matrix[t,:]
 
-			for vii in range(this_run_data.shape[0]):
-				if np.sum(np.isnan(this_run_data[vii,:]))==0:
-					mdl = RidgeCV(alphas=[0.0001,0.1,1,10,100,1000],fit_intercept=False,normalize=False)
-					mdl.fit(design_matrix, this_run_data[vii,:])
-					betas[run_ii,vii,:] = mdl.coef_
-					alphas[run_ii,vii,:] = mdl.alpha_
+			design_matrix_combined = np.empty((design_matrix_rs.shape[0],9), dtype=design_matrix_rs.dtype)
+			design_matrix_combined[:,::2] = np.hstack([np.ones((design_matrix_rs.shape[0],1)), fftconvolve(design_matrix_rs, hrf_dt[:,np.newaxis],'full')[:design_matrix_rs.shape[0],:]])
+			design_matrix_combined[:,1::2] = fftconvolve(design_matrix_rs, hrf[:,np.newaxis],'full')[:design_matrix_rs.shape[0],:]
 
-			location_contrast = np.eye(4) + (np.eye(4)-1)/3
+			design_matrix_final = design_matrix_combined[TRs,:]
+
+			betas[run_ii,outlier_mask,:] = la.lstsq(design_matrix_final, this_run_data.T)[0].T
+
+			# for vii in range(this_run_data.shape[0]):
+			# 	if np.sum(np.isnan(this_run_data[vii,:]))==0:
+			# 		mdl = RidgeCV(alphas=[0.0001,0.1,1,10,100,1000],fit_intercept=False,normalize=False)
+			# 		mdl.fit(design_matrix_final, this_run_data[vii,:])
+			# 		betas[run_ii,vii,:] = mdl.coef_
+			# 		alphas[run_ii,vii,:] = mdl.alpha_
+
+			location_contrast = np.zeros((8,8))
+			location_contrast[::2,::2] = np.eye(4) + (np.eye(4)-1)/3
 
 			df = this_run_data.shape[1] - betas.shape[2]
-			location_tvalues[run_ii,:,:] = betas[run_ii,:,1:].dot(location_contrast) / (((design_matrix.dot(betas[run_ii,:,:].T)-this_run_data.T)**2).sum(axis=0) / df)[:,np.newaxis]
+			location_tvalues[run_ii,outlier_mask,:] = betas[run_ii,outlier_mask,1::].dot(location_contrast)[:,::2] / (((design_matrix_final.dot(betas[run_ii,outlier_mask,:].T)-this_run_data.T)**2).sum(axis=0) / df)[:,np.newaxis]
 
 
 	else:
-
-		# embed()
 
 		concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])#np.hstack(mri_data[ROI])#
 		concat_trial_order = np.hstack(task_data['trial_order'])
@@ -209,11 +237,6 @@ for subid in subs:
 
 		location_contrast = np.eye(4) + (np.eye(4)-1)/3
 
-		# location_contrast = [[0.5, -0.5],
-		# 					 [0.5, -0.5],
-		# 					 [-0.5,0.5],
-		# 					 [-0.5,0.5]]
-
 		df = resampled_mri_data.shape[0] - betas.shape[0]
 		location_tvalues = betas[1:,:].T.dot(location_contrast) / (((resampled_dm.dot(betas)-resampled_mri_data.T)**2).sum(axis=0) / df)[:,np.newaxis]
 
@@ -226,6 +249,27 @@ for subid in subs:
 		all_betas[ROI] = betas
 		all_tvals[ROI] = location_tvalues
 		all_rs[ROI] = location_rs
+
+
+	# embed()
+
+	# for v in np.nanargmax(all_tvals['V1'], axis=0):
+	# 	figure()
+
+	# 	for l in range(4):
+	# 		subplot(4,1,l+1)
+
+	# 		plot(resampled_mri_data[v,:],'-',color=[.5,.5,.5],lw=1)
+	# 		plot(resampled_dm[:,l+1]*(betas[1+l,v]),'--',color='k',lw=1.5)
+
+
+
+	# for l in range(4):
+	# 	subplot(4,1,l+1)
+
+	# 	plot(np.arange(0,1147,1/0.945), design_matrix[:,l])
+		
+
 
 	# Save stuff
 	sio.savemat(file_name=os.path.join(deriv_dir,'%s-location_betas.mat'%task), mdict=all_betas)

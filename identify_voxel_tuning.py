@@ -66,7 +66,8 @@ for subid in subs:
 	all_rs 	  = {}
 
 	# Setup directories
-	data_dir = '/home/shared/2017/visual/OriColorMapper/preproc/'
+	#data_dir = '/home/shared/2017/visual/OriColorMapper/preproc/'
+	data_dir = '/home/barendregt/Project/OriColorMapper/fmri_data/'
 	#data_dir = '/home/barendregt/Projects/Attention/'
 	nifti_dir = os.path.join(data_dir, subid, 'psc/')
 	deriv_dir = os.path.join(data_dir, subid, 'deriv/')

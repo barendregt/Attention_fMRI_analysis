@@ -78,13 +78,13 @@ for subid in subs:
 	fig_dir = os.path.join(data_dir, subid, 'figures/')
 
 
-	# Load regression results
-	# location_betas = sio.loadmat(os.path.join(deriv_dir,'%s-location_betas.mat'%task))[ROI]
-	# location_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-location_rsquareds.mat'%task))[ROI]
-	# location_tvals = sio.loadmat(os.path.join(deriv_dir,'%s-location_tvals.mat'%task))[ROI]
+	# Load location results
+	location_betas = sio.loadmat(os.path.join(deriv_dir,'%s-location_betas.mat'%task))[ROI]
+	location_r_squared = sio.loadmat(os.path.join(deriv_dir,'%s-location_rsquareds.mat'%task))[ROI]
+	location_tvals = sio.loadmat(os.path.join(deriv_dir,'%s-location_tvals.mat'%task))[ROI]
 
-	# all_tvals.append(location_tvals)
-	# all_rs.append(location_r_squared)	
+	all_tvals.append(location_tvals)
+	all_rs.append(location_r_squared)	
 
 
 	# Get location pref distribution
@@ -98,12 +98,12 @@ for subid in subs:
 	ori_pref = np.zeros((feature_betas.shape[1]))
 	col_pref = np.zeros((feature_betas.shape[1]))
 
-	for vii in feature_betas.shape[1]:
+	for vii in range(feature_betas.shape[1]):
 
 		rs_betas = np.reshape(feature_betas[1:,vii],[8,8])
 
-		ori_pref[vii] = np.argmax(rs_betas, axis=1)
-		col_pref[vii] = np.argmax(rs_betas, axis=0)
+		ori_pref[vii] = np.argmax(rs_betas.max(axis=1))
+		col_pref[vii] = np.argmax(rs_betas.max(axis=0))
 
 
 
@@ -150,37 +150,69 @@ for subid in subs:
 
 	template_beta_mat = np.reshape(np.arange(64),[8,8])
 
-	col_beta_mat = np.repeat(np.arange(8)[:,np.newaxis],8,axis=1)
-	ori_beta_mat = np.repeat(np.arange(8)[:,np.newaxis],8,axis=1).T
 
-	for vii in mri_data.shape[0]:
 
-		concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])#np.hstack(mri_data[ROI])#
-		concat_trial_order = np.hstack(task_data['trial_order'])
+	concat_mri_data = np.hstack([(x-x.mean(axis=1)[:,np.newaxis])/x.std(axis=1)[:,np.newaxis] for x in mri_data[ROI]])#np.hstack(mri_data[ROI])#
+	concat_trial_order = np.array(np.hstack(task_data['trial_order']),dtype=int)
 
-		trial_locations = np.vstack(task_data['trial_order'])[:,[1,2]]
+	trial_locations = np.vstack(task_data['trial_params'])[:,[1,2]]
 
-		betas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))
-		alphas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))	
+	resampled_mri_data = resample(concat_mri_data, int(concat_mri_data.shape[1]/TR), axis=1)
 
-		for vii in range(resampled_mri_data.shape[0]):
+	ori_betas = np.zeros((9,resampled_mri_data.shape[0]))
+	col_betas = np.zeros((9,resampled_mri_data.shape[0]))
+	#alphas = np.zeros((resampled_dm.shape[1],resampled_mri_data.shape[0]))	
 
-			design_matrix = np.vstack([np.array((trial_locations[:,0]==a) * (trial_locations[:,1]==b) * (concat_trial_order==stim), dtype=int) for stim in range(64)]).T
+	for vii in range(resampled_mri_data.shape[0]):
 
-			# resample signals to 1s resolution 
-			resampled_mri_data = resample(concat_mri_data, int(concat_mri_data.shape[1]/TR), axis=1)
-			resampled_dm       = resample(design_matrix, int(concat_mri_data.shape[1]/TR), axis=0)
-			
-			resampled_dm = np.hstack([np.ones((resampled_dm.shape[0],1)), fftconvolve(resampled_dm, hrf(np.arange(0,30,1/US_FACTOR)[::US_FACTOR,np.newaxis]))[:resampled_mri_data.shape[1],:]])
+		a=locations[np.argmax(location_tvals,axis=1)[vii]][0]
+		b=locations[np.argmax(location_tvals,axis=1)[vii]][1]
+
+		ori_beta_mat = np.roll(np.repeat(np.arange(1,9)[:,np.newaxis],8,axis=1),-int(ori_pref[vii]), axis=0).flatten()
+		col_beta_mat = np.roll(np.repeat(np.arange(1,9)[:,np.newaxis],8,axis=1),-int(col_pref[vii]), axis=1).T.flatten()
+
+		recoded_trials = np.zeros((concat_trial_order.shape[0]))
+		recoded_trials[concat_trial_order<64] = ori_beta_mat[concat_trial_order[concat_trial_order<64]]				
+
+		design_matrix = np.vstack([np.array((trial_locations[:,0]==a) * (trial_locations[:,1]==b) * (recoded_trials==stim), dtype=int) for stim in range(1,9)]).T
+
+		# resample signals to 1s resolution 
 		
-			if np.sum(np.isnan(resampled_mri_data[vii,:]))==0:
-				mdl = RidgeCV(alphas=[1.0,10.0,100.0,1000.0])
-				mdl.fit(resampled_dm, resampled_mri_data[vii,:])
+		resampled_dm = resample(design_matrix, int(concat_mri_data.shape[1]/TR), axis=0)
+		
+		resampled_dm = np.hstack([np.ones((resampled_dm.shape[0],1)), fftconvolve(resampled_dm, hrf(np.arange(0,30,1/US_FACTOR)[::US_FACTOR,np.newaxis]))[:resampled_mri_data.shape[1],:]])
+	
+		if np.sum(np.isnan(resampled_mri_data[vii,:]))==0:
+			mdl = RidgeCV(alphas=[1.0,10.0,100.0,1000.0])
+			mdl.fit(resampled_dm, resampled_mri_data[vii,:])
 
-				betas[:,vii] = mdl.coef_
-				alphas[:,vii] = mdl.alpha_
+			ori_betas[:,vii] = mdl.coef_
+			# ori_betas[:,vii] = la.lstsq(resampled_dm, resampled_mri_data[vii,:])[0]
+				#alphas[:,vii] = mdl.alpha_
+
+		recoded_trials = np.zeros((concat_trial_order.shape[0]))
+		recoded_trials[concat_trial_order<64] = col_beta_mat[concat_trial_order[concat_trial_order<64]]				
+
+		design_matrix = np.vstack([np.array((trial_locations[:,0]==a) * (trial_locations[:,1]==b) * (recoded_trials==stim), dtype=int) for stim in range(1,9)]).T
+
+		# resample signals to 1s resolution 
+		
+		resampled_dm = resample(design_matrix, int(concat_mri_data.shape[1]/TR), axis=0)
+		
+		resampled_dm = np.hstack([np.ones((resampled_dm.shape[0],1)), fftconvolve(resampled_dm, hrf(np.arange(0,30,1/US_FACTOR)[::US_FACTOR,np.newaxis]))[:resampled_mri_data.shape[1],:]])
+	
+		if np.sum(np.isnan(resampled_mri_data[vii,:]))==0:
+			mdl = RidgeCV(alphas=[1.0,10.0,100.0,1000.0])
+			mdl.fit(resampled_dm, resampled_mri_data[vii,:])
+			col_betas[:,vii] = mdl.coef_
+			# col_betas[:,vii] = la.lstsq(resampled_dm, resampled_mri_data[vii,:])[0]
 
 
+	plt.figure()
+	plt.plot(ori_betas[1:,:].mean(axis=1),color='r')
+	plt.plot(col_betas[1:,:].mean(axis=1),color='b')
+	sn.despine(offset=5)
+	plt.savefig(os.path.join(deriv_dir,'avg_feature_tuning.pdf'))
 
 
 
