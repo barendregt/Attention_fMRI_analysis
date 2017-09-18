@@ -63,7 +63,7 @@ trialinfo_files.sort()
 params_files.sort()
 
 
-
+embed()
 # Load fMRI data if not previously saved
 mri_data = {}
 
