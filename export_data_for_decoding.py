@@ -67,21 +67,33 @@ embed()
 # Load fMRI data if not previously saved
 mri_data = {}
 
-for ROI in rois:
-	# Get all cortex data and task orders
-	lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
-	rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+for runii in enumerate(nifti_files):
+	for ROI in rois:
+		# Get all cortex data and task orders
+		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
+		rh_mask = np.array(nib.load(os.path.join(ROI_dir,'rh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
 
-	mri_data[ROI] = np.array([np.vstack([nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]]) for nf in nifti_files])
+		# mri_data[ROI] = np.array([np.vstack([nib.load(nf).get_data()[lh_mask,:], nib.load(nf).get_data()[rh_mask,:]]) for nf in nifti_files])
+
+		old_img = nib.load(nifti_files[runii])
+		new_img = nib.Nifti1Image(old_img.get_data()[lh_mask+rh_mask,:], old_img.affine)
+		new_img.to_filename(os.path.join('deriv','%s-%s-%i.nii.gz'%(subid,ROI,runii)))
 
 
-# Load trial data
-task_data = {'trial_order': [],
-			 'trial_stimuli': [],
-			 'trial_params': []}
+	# Load trial data
+	task_data = {'trial_order': [],
+				 'trial_stimuli': [],
+				 'trial_params': []}
 
-for ti,par in zip(trialinfo_files, params_files):
-	[trial_array, trial_indices, trial_params, per_trial_parameters, per_trial_phase_durations, staircase] = pickle.load(open(ti,'rb'))
+
+	# for ti,par in zip(trialinfo_files, params_files):
+	[trial_array, trial_indices, trial_params, per_trial_parameters, per_trial_phase_durations, staircase] = pickle.load(open(trialinfo_files[runii],'rb'))
+
+	trial_times = per_trial_phase_durations[:,0] + np.arange(len(per_trial_phase_durations))
+	trial_stims = 
+
+
+
 	task_data['trial_order'].append(trial_params[:,0])
 	task_data['trial_params'].append(trial_params)
 	task_data['trial_stimuli'].append(trial_array)
