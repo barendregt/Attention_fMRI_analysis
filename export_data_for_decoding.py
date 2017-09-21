@@ -90,7 +90,7 @@ for runii in enumerate(nifti_files):
 	[trial_array, trial_indices, trial_params, per_trial_parameters, per_trial_phase_durations, staircase] = pickle.load(open(trialinfo_files[runii],'rb'))
 
 	trial_times = per_trial_phase_durations[:,0] + np.arange(len(per_trial_phase_durations))
-	trial_stims = 
+	trial_stims = []
 
 
 
