@@ -17,7 +17,7 @@ from Staircase import ThreeUpOneDownStaircase
 from tools import two_gamma as hrf
 from tools import add_subplot_axes
 
-from convert_nii_to_h5 import nii_2_hdf5 as n2h5
+# from convert_nii_to_h5 import nii_2_hdf5 as n2h5
 
 
 import ColorTools as ct
@@ -92,7 +92,7 @@ full_fact_stimulus_specs = np.array([[[o,c[0],c[1],c[2]] for o in orientations] 
 
 
 
-embed()
+# embed()
 # Load fMRI data if not previously saved
 mri_data = {}
 
