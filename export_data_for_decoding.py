@@ -17,6 +17,9 @@ from Staircase import ThreeUpOneDownStaircase
 from tools import two_gamma as hrf
 from tools import add_subplot_axes
 
+from convert_nii_to_h5 import nii_2_hdf5 as n2h5
+
+
 import ColorTools as ct
 
 from sklearn.linear_model import RidgeCV
@@ -63,11 +66,37 @@ trialinfo_files.sort()
 params_files.sort()
 
 
+
+orientations = np.linspace(90, 270, 8+1)[:-1]
+
+# Compute evenly-spaced steps in (L)ab-space
+
+color_theta = (np.pi*2)/8
+color_angle = color_theta * np.arange(0, 8,dtype=float)
+color_radius = 75
+
+color_a = color_radius * np.cos(color_angle)
+color_b = color_radius * np.sin(color_angle)
+
+colors = [(55, a, b) for a,b in zip(color_a, color_b)]			 
+
+#stimulus_positions = standard_parameters['stimulus_positions']
+
+full_fact_stimulus_specs = []
+
+
+full_fact_stimulus_specs = np.array([[[o,c[0],c[1],c[2]] for o in orientations] for c in colors]).reshape((64,4))
+# dbstop()
+
+
+
+
+
 embed()
 # Load fMRI data if not previously saved
 mri_data = {}
 
-for runii in enumerate(nifti_files):
+for runii, fname in enumerate(nifti_files):
 	for ROI in rois:
 		# Get all cortex data and task orders
 		lh_mask = np.array(nib.load(os.path.join(ROI_dir,'lh.%s_vol_dil.nii.gz'%ROI)).get_data(), dtype = bool)
@@ -77,7 +106,7 @@ for runii in enumerate(nifti_files):
 
 		old_img = nib.load(nifti_files[runii])
 		new_img = nib.Nifti1Image(old_img.get_data()[lh_mask+rh_mask,:], old_img.affine)
-		new_img.to_filename(os.path.join('deriv','%s-%s-%i.nii.gz'%(subid,ROI,runii)))
+		new_img.to_filename(os.path.join(deriv_dir,'%s-%s-%i.nii.gz'%(subid,ROI,runii)))
 
 
 	# Load trial data
@@ -89,14 +118,10 @@ for runii in enumerate(nifti_files):
 	# for ti,par in zip(trialinfo_files, params_files):
 	[trial_array, trial_indices, trial_params, per_trial_parameters, per_trial_phase_durations, staircase] = pickle.load(open(trialinfo_files[runii],'rb'))
 
-	trial_times = per_trial_phase_durations[:,0] + np.arange(len(per_trial_phase_durations))
-	trial_stims = []
+	trial_times = np.vstack(per_trial_phase_durations)[:,0] + np.arange(len(per_trial_phase_durations))*TR
+	
+	stimulus_times_w_codes = np.vstack([trial_times[trial_params[:,0]<64], trial_params[trial_params[:,0]<64,0]]).T
 
+	stimulus_times_w_codes_and_specs = np.hstack([stimulus_times_w_codes, full_fact_stimulus_specs[np.array(stimulus_times_w_codes[:,1],dtype=int)]])
 
-
-	task_data['trial_order'].append(trial_params[:,0])
-	task_data['trial_params'].append(trial_params)
-	task_data['trial_stimuli'].append(trial_array)
-
-
-embed()
+	np.savetxt(os.path.join(deriv_dir,'%s-%i.tsv'%(subid,runii)), stimulus_times_w_codes_and_specs, delimiter = '\t', header = 'Stim onset \t Stim code \t Orientation \t L \t a \t b')
